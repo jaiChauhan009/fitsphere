@@ -11,9 +11,11 @@ import time
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Create all tables on startup (use Alembic for prod migrations)
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    try:
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+    except Exception as e:
+        print(f"[startup] DB init warning: {e}")
     yield
     await engine.dispose()
 
