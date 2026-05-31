@@ -12,7 +12,12 @@ def _init_firebase():
     global _initialized
     if not _initialized and settings.FIREBASE_SERVICE_ACCOUNT_JSON:
         try:
-            cred = credentials.Certificate(settings.FIREBASE_SERVICE_ACCOUNT_JSON)
+            import json, os
+            value = settings.FIREBASE_SERVICE_ACCOUNT_JSON
+            if os.path.isfile(value):
+                cred = credentials.Certificate(value)
+            else:
+                cred = credentials.Certificate(json.loads(value))
             firebase_admin.initialize_app(cred)
             _initialized = True
         except Exception:

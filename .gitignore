@@ -2,6 +2,9 @@
 .env
 *.env
 
+# Firebase credentials
+serviceAccountKey.json
+
 # Python
 __pycache__/
 *.py[cod]
