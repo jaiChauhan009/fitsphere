@@ -1,9 +1,12 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 from database import engine, Base
 from config import settings
 from routers import users, food, nutrition, workouts, progress, ai, knowledge
+from sqlalchemy import text
+import time
 
 
 @asynccontextmanager
@@ -45,5 +48,25 @@ def root():
 
 
 @app.get("/health")
-def health():
-    return {"status": "ok"}
+async def health():
+    """Health check used by Render. Verifies API + DB connectivity."""
+    start = time.monotonic()
+    db_ok = False
+    db_error = None
+    try:
+        async with engine.connect() as conn:
+            await conn.execute(text("SELECT 1"))
+        db_ok = True
+    except Exception as e:
+        db_error = str(e)
+
+    latency_ms = round((time.monotonic() - start) * 1000, 1)
+    payload = {
+        "status": "ok" if db_ok else "degraded",
+        "api": "ok",
+        "database": "ok" if db_ok else f"error: {db_error}",
+        "latency_ms": latency_ms,
+        "version": "1.0.0",
+    }
+    status_code = 200 if db_ok else 503
+    return JSONResponse(content=payload, status_code=status_code)
