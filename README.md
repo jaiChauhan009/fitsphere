@@ -362,7 +362,3 @@ Minimum floor: 1200 kcal/day
 ```
 
 BMI is calculated as: `weight_kg / (height_m)²`
-
-
-
-for testing 
