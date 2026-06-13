@@ -1,12 +1,15 @@
-from fastapi import APIRouter, Depends, Query
+from datetime import date, timedelta
+import uuid
+
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+
+from cache import cache_invalidate
 from database import get_db
 from models import User, WorkoutLog, WorkoutPlan, Exercise
 from schemas import WorkoutLogCreate, WorkoutLogOut
 from utils.firebase import get_current_firebase_uid
-from datetime import date, timedelta
-import uuid
 
 router = APIRouter(prefix="/workouts", tags=["workouts"])
 
@@ -53,16 +56,19 @@ async def log_workout(
 ):
     result = await db.execute(select(User).where(User.firebase_uid == firebase_uid))
     user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(404, "User not found")
 
     log = WorkoutLog(
         id=str(uuid.uuid4()),
         user_id=user.id,
         log_date=payload.log_date or date.today(),
-        **payload.model_dump(),
+        **payload.model_dump(exclude={"log_date"}),
     )
     db.add(log)
     await db.commit()
     await db.refresh(log)
+    cache_invalidate(f"progress:{user.id}")
     return log
 
 
@@ -74,6 +80,8 @@ async def workout_history(
 ):
     result = await db.execute(select(User).where(User.firebase_uid == firebase_uid))
     user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(404, "User not found")
     since = date.today() - timedelta(days=days)
 
     logs = await db.execute(

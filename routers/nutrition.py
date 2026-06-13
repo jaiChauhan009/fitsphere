@@ -1,13 +1,16 @@
+from datetime import date, datetime
+import uuid
+
 from fastapi import APIRouter, Depends, Query, UploadFile, File, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
+
+from cache import cache_invalidate
 from database import get_db
 from models import User, NutritionLog, Food
 from schemas import NutritionLogCreate, NutritionLogOut, DailySummary
 from utils.firebase import get_current_firebase_uid
 from utils.gemini import analyze_food_photo
-from datetime import date, datetime
-import uuid
 
 router = APIRouter(prefix="/nutrition", tags=["nutrition"])
 
@@ -36,11 +39,12 @@ async def log_meal(
         id=str(uuid.uuid4()),
         user_id=user.id,
         log_date=payload.log_date or date.today(),
-        **payload.model_dump(),
+        **payload.model_dump(exclude={"log_date"}),
     )
     db.add(log)
     await db.commit()
     await db.refresh(log)
+    cache_invalidate(f"progress:{user.id}")
     return log
 
 
@@ -137,4 +141,5 @@ async def delete_log(
         raise HTTPException(404, "Log not found")
     await db.delete(log)
     await db.commit()
+    cache_invalidate(f"progress:{user.id}")
     return {"deleted": log_id}
