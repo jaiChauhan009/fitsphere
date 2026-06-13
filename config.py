@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     USDA_API_KEY: str = ""
     SECRET_KEY: str = "change-this-in-production"
     APP_ENV: str = "development"
-    CORS_ORIGINS: str = "http://localhost:3000,http://10.0.2.2:8000,https://fitsphere-ofl4.onrender.com"
+    CORS_ORIGINS: str = "https://fitsphere-1-sz2o.onrender.com"
 
     @property
     def cors_origins_list(self) -> List[str]:
